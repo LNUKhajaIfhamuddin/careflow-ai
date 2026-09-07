@@ -81,10 +81,10 @@ export default function Login() {
           </div>
 
           <div className="demo-box">
-            <strong>Demo accounts</strong> (run <code>python -m app.seed</code> first):
-            <br />Patient: jane.doe@example.com / Patient123!
-            <br />Provider: dr.patel@careflow.ai / Provider123!
-            <br />Admin: admin@careflow.ai / Admin123!
+            <strong>Demo accounts</strong>:
+            <br />Admin: <code>LNUKhajaIfhamuddin@gmail.com</code> / <code>LNUKhajaIfhamuddin</code>
+            <br />Provider: <code>dr.patel@careflow.ai</code> / <code>Provider123!</code>
+            <br />Patient: <code>jane.doe@example.com</code> / <code>Patient123!</code>
           </div>
         </form>
       </div>

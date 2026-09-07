@@ -18,6 +18,11 @@ Base.metadata.create_all(bind=engine)
 def get_or_create_user(db, **kwargs):
     existing = db.query(models.User).filter(models.User.email == kwargs["email"]).first()
     if existing:
+        existing.hashed_password = kwargs["hashed_password"]
+        existing.full_name = kwargs.get("full_name", existing.full_name)
+        existing.role = kwargs.get("role", existing.role)
+        db.commit()
+        db.refresh(existing)
         return existing
     user = models.User(**kwargs)
     db.add(user)
@@ -28,6 +33,14 @@ def get_or_create_user(db, **kwargs):
 
 def run():
     db = SessionLocal()
+
+    khaja = get_or_create_user(
+        db,
+        full_name="LNUKhajaIfhamuddin",
+        email="lnukhajaifhamuddin@gmail.com",
+        hashed_password=auth.hash_password("LNUKhajaIfhamuddin"),
+        role=models.UserRole.admin,
+    )
 
     admin = get_or_create_user(
         db,
@@ -78,6 +91,7 @@ def run():
         db.commit()
 
     print("Seed complete. Demo accounts:")
+    print("  LNUKhajaIfhamuddin@gmail.com / LNUKhajaIfhamuddin (admin)")
     print("  admin@careflow.ai      / Admin123!    (admin)")
     print("  dr.patel@careflow.ai   / Provider123! (provider, Cardiology)")
     print("  dr.chen@careflow.ai    / Provider123! (provider, Pediatrics)")
