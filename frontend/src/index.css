@@ -1,0 +1,200 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --ink: #16241f;
+  --teal: #0f5c56;
+  --teal-dark: #0a413d;
+  --sage: #eff5f1;
+  --sage-deep: #e2ece5;
+  --white: #ffffff;
+  --coral: #e2574c;
+  --coral-soft: #fbe7e5;
+  --gold: #c9a227;
+  --gold-soft: #f8f0d8;
+  --border: #d8e3dd;
+  --text-muted: #5a6b64;
+
+  --radius: 10px;
+  --shadow: 0 2px 10px rgba(15, 92, 86, 0.08);
+  --shadow-lift: 0 8px 24px rgba(15, 92, 86, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--sage);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .display {
+  font-family: 'Fraunces', Georgia, serif;
+  letter-spacing: -0.01em;
+  color: var(--teal-dark);
+  margin: 0;
+}
+
+.mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+a {
+  color: var(--teal);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius);
+  padding: 11px 20px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.btn-primary {
+  background: var(--teal);
+  color: var(--white);
+}
+.btn-primary:hover {
+  background: var(--teal-dark);
+  box-shadow: var(--shadow-lift);
+}
+.btn-primary:disabled {
+  background: #9fb8b3;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--white);
+  color: var(--teal-dark);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+  border-color: var(--teal);
+}
+
+.btn-danger {
+  background: var(--coral-soft);
+  color: var(--coral);
+}
+.btn-danger:hover {
+  background: #f6d3cf;
+}
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.input-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.input-group input,
+.input-group select,
+.input-group textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink);
+}
+
+.input-group input:focus,
+.input-group select:focus,
+.input-group textarea:focus {
+  border-color: var(--teal);
+}
+
+.error-text {
+  color: var(--coral);
+  font-size: 0.85rem;
+  margin-top: -8px;
+  margin-bottom: 12px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badge-low { background: var(--sage-deep); color: var(--teal-dark); }
+.badge-medium { background: var(--gold-soft); color: #8a6d0f; }
+.badge-high { background: var(--coral-soft); color: var(--coral); }
+
+.badge-pending { background: var(--gold-soft); color: #8a6d0f; }
+.badge-confirmed { background: var(--sage-deep); color: var(--teal-dark); }
+.badge-completed { background: #dfe7ff; color: #3549a8; }
+.badge-cancelled { background: #eee; color: #777; }
+
+.pulse-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 1.6s infinite;
+}
+.pulse-low { background: var(--teal); }
+.pulse-medium { background: var(--gold); }
+.pulse-high { background: var(--coral); animation: pulse-high 1.6s infinite; }
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(15, 92, 86, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(15, 92, 86, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(15, 92, 86, 0); }
+}
+
+@keyframes pulse-high {
+  0% { box-shadow: 0 0 0 0 rgba(226, 87, 76, 0.5); }
+  70% { box-shadow: 0 0 0 10px rgba(226, 87, 76, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(226, 87, 76, 0); }
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot { animation: none; }
+}

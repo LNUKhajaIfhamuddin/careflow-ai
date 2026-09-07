@@ -1,0 +1,13 @@
+{
+  "name": "careflow-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "start": "npx serve -s frontend/dist -l 8080",
+    "dev": "cd frontend && npm run dev"
+  },
+  "dependencies": {
+    "serve": "^14.2.4"
+  }
+}
