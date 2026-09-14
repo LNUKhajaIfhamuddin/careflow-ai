@@ -159,10 +159,9 @@ After running the seed script:
 
 | Role     | Email                    | Password       |
 |----------|--------------------------|----------------|
-| Patient  | jane.doe@example.com     | Patient123!    |
-| Provider | dr.patel@careflow.ai     | Provider123!   |
-| Provider | dr.chen@careflow.ai      | Provider123!   |
-| Admin    | admin@careflow.ai        | Admin123!      |
+| Patient  | khaja.patient@gmail.com  | khaja1234      |
+| Provider | khaja.provider@gmail.com | khaja1234      |
+| Admin    | khaja.admin@gmail.com    | khaja1234      |
 
 ## Environment variables
 

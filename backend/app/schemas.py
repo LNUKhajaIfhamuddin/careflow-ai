@@ -3,7 +3,8 @@ import re
 from enum import Enum
 from typing import Optional, List
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator, ConfigDict
+from datetime import timezone
 
 from .models import UserRole, AppointmentStatus, Urgency
 
@@ -91,10 +92,10 @@ class UserOut(BaseModel):
     role: UserRole
     specialty: Optional[str] = None
     phone: Optional[str] = None
+    is_active: bool = True
     created_at: dt.datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Token(BaseModel):
@@ -128,6 +129,37 @@ class SymptomIntakeResponse(BaseModel):
 
 
 # ---------- Appointments ----------
+
+def _validate_slot_boundary(v: Optional[dt.datetime]) -> Optional[dt.datetime]:
+    """Ensure *scheduled_time* falls exactly on a 30-minute boundary.
+
+    The minute component must be 0 or 30, and seconds / microseconds must
+    both be 0.  This keeps the calendar grid clean and prevents
+    nonsensical timestamps like 14:07:43.
+    """
+    if v is None:
+        return v
+    # Normalise timezone-aware datetimes to UTC then strip tzinfo so the
+    # rest of the pipeline (DB column is naive-UTC) works consistently.
+    if v.tzinfo is not None:
+        v = v.astimezone(timezone.utc).replace(tzinfo=None)
+    if v.minute not in (0, 30) or v.second != 0 or v.microsecond != 0:
+        lower_min = 0 if v.minute < 30 else 30
+        lower_dt = v.replace(minute=lower_min, second=0, microsecond=0)
+        upper_dt = v.replace(minute=0, second=0, microsecond=0) + dt.timedelta(minutes=30 if v.minute < 30 else 60)
+        diff_lower = abs((v - lower_dt).total_seconds())
+        diff_upper = abs((upper_dt - v).total_seconds())
+        if diff_lower <= diff_upper:
+            nearest_dt, alt_dt = lower_dt, upper_dt
+        else:
+            nearest_dt, alt_dt = upper_dt, lower_dt
+        raise ValueError(
+            f"scheduled_time must fall on a 30-minute boundary (e.g. on the hour or half-hour). "
+            f"Nearest open slot: {nearest_dt.strftime('%H:%M')} (alternative: {alt_dt.strftime('%H:%M')})."
+        )
+    return v
+
+
 class AppointmentCreate(BaseModel):
     reason: str = Field(min_length=3, max_length=2000)
     specialty: Optional[str] = Field(default=None, max_length=100)
@@ -146,11 +178,15 @@ class AppointmentCreate(BaseModel):
 
     @field_validator("scheduled_time")
     @classmethod
-    def must_be_future(cls, v: Optional[dt.datetime]) -> Optional[dt.datetime]:
+    def must_be_future_and_on_slot(cls, v: Optional[dt.datetime]) -> Optional[dt.datetime]:
         if v is not None:
-            # Normalize to naive UTC for comparison since the DB column is naive.
-            compare_value = v.replace(tzinfo=None) if v.tzinfo else v
-            if compare_value < dt.datetime.utcnow():
+            # Enforce 30-minute slot boundary first
+            v = _validate_slot_boundary(v)
+            now_utc = dt.datetime.now(timezone.utc).replace(tzinfo=None) - dt.timedelta(minutes=1)
+            now_local = dt.datetime.now() - dt.timedelta(minutes=1)
+
+            # Reject if the slot is in the past
+            if v < now_utc and v < now_local:
                 raise ValueError("Appointment time must be in the future.")
         return v
 
@@ -168,6 +204,11 @@ class AdminAppointmentUpdate(BaseModel):
     provider_id: Optional[int] = None
     urgency: Optional[Urgency] = None
 
+    @field_validator("scheduled_time")
+    @classmethod
+    def must_be_on_slot(cls, v: Optional[dt.datetime]) -> Optional[dt.datetime]:
+        return _validate_slot_boundary(v)
+
 
 class AppointmentOut(BaseModel):
     id: int
@@ -181,10 +222,11 @@ class AppointmentOut(BaseModel):
     scheduled_time: Optional[dt.datetime]
     created_at: dt.datetime
     patient_name: Optional[str] = None
+    patient_email: Optional[EmailStr] = None
+    patient_phone: Optional[str] = None
     provider_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ---------- Notifications ----------
@@ -195,8 +237,7 @@ class NotificationOut(BaseModel):
     created_at: dt.datetime
     appointment_id: Optional[int]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ---------- Admin analytics ----------
@@ -205,6 +246,7 @@ class AnalyticsSummary(BaseModel):
     total_providers: int
     total_appointments: int
     pending_appointments: int
+    confirmed_appointments: int
     completed_appointments: int
     cancelled_appointments: int
     appointments_by_specialty: dict

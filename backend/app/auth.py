@@ -29,7 +29,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_access_token(data: dict, expires_delta: Optional[dt.timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = dt.datetime.utcnow() + (
+    expire = dt.datetime.now(dt.timezone.utc) + (
         expires_delta or dt.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode.update({"exp": expire})
@@ -55,6 +55,11 @@ def get_current_user(
     user = db.query(models.User).filter(models.User.id == int(user_id)).first()
     if user is None:
         raise credentials_exception
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account has been deactivated. Please contact an administrator.",
+        )
     return user
 
 

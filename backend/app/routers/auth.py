@@ -41,14 +41,10 @@ def register(payload: schemas.UserCreate, request: Request, db: Session = Depend
 
 @router.post("/login", response_model=schemas.Token)
 def login(payload: schemas.UserLogin, request: Request, db: Session = Depends(get_db)):
-    # Rate-limited per client IP to mitigate brute-force password guessing.
-    # NOTE: this is an in-memory, single-process limiter suitable for local
-    # development/demo purposes. A production deployment behind multiple
-    # workers or instances should use a shared store (e.g. Redis) instead.
-    enforce_rate_limit(f"login:{request.client.host}", limit=10, window_seconds=300)
-
     user = db.query(models.User).filter(models.User.email == payload.email).first()
     if not user or not auth.verify_password(payload.password, user.hashed_password):
+        # Rate-limit failed attempts per client IP to mitigate brute-force password guessing.
+        enforce_rate_limit(f"login:{request.client.host}", limit=10, window_seconds=300)
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="This account has been deactivated")

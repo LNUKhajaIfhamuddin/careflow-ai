@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { formatError } from '../api/client';
+import {
+  StethoscopeIcon,
+  ShieldIcon,
+  AlertCircleIcon,
+  ArrowRightIcon,
+  SparklesIcon,
+} from '../components/Icons';
 
 const SPECIALTIES = [
   'General Practice', 'Cardiology', 'Dermatology', 'Orthopedics', 'Neurology',
@@ -21,16 +29,13 @@ export default function Register() {
     const errs = {};
     if (form.full_name.trim().length < 2) errs.full_name = 'Enter your full name.';
     if (!/^\S+@\S+\.\S+$/.test(form.email)) errs.email = 'Enter a valid email address.';
-    // Mirrors the backend's password policy (schemas.py) so users see the
-    // real requirement client-side instead of only discovering it after
-    // a failed submit.
     if (form.password.length < 8) {
       errs.password = 'Password must be at least 8 characters.';
     } else if (!/[A-Za-z]/.test(form.password) || !/[0-9]/.test(form.password)) {
       errs.password = 'Password must include at least one letter and one number.';
     }
     if (form.password !== form.confirm) errs.confirm = 'Passwords do not match.';
-    if (form.role === 'provider' && !form.specialty) errs.specialty = 'Select a specialty.';
+    if (form.role === 'provider' && !form.specialty) errs.specialty = 'Select a medical specialty.';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -50,30 +55,57 @@ export default function Register() {
       });
       navigate(`/${user.role}`);
     } catch (err) {
-      setFormError(err.response?.data?.detail || 'Unable to create account. Please try again.');
+      setFormError(formatError(err, 'Unable to create account. Please try again.'));
     }
   };
 
   return (
     <div className="auth-shell">
       <div className="auth-hero">
-        <div className="brand">🩺 CareFlow AI</div>
-        <div className="hero-copy">
-          <h1>One account, coordinated care.</h1>
-          <p>
-            Patients, providers, and administrators each get a dashboard built
-            for their role — from AI symptom intake to full operational analytics.
-          </p>
+        <div className="brand">
+          <div className="brand-icon-wrap">
+            <StethoscopeIcon size={22} />
+          </div>
+          <span>CareFlow AI</span>
+          <span className="brand-badge">Clinical v2.0</span>
         </div>
-        <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-          Your information is stored securely and never used to generate a diagnosis.
+
+        <div className="hero-copy">
+          <div className="hero-badge">
+            <SparklesIcon size={14} /> Integrated Care Platform
+          </div>
+          <h1>One unified portal for modern care teams.</h1>
+          <p>
+            Patients experience instant symptom triage and scheduling. Healthcare providers
+            get conflict-free calendars and clinical summaries.
+          </p>
+
+          <div className="hero-stats">
+            <div>
+              <strong>Instant</strong>
+              <span>Care Routing</span>
+            </div>
+            <div>
+              <strong>Secure</strong>
+              <span>Protected Data</span>
+            </div>
+            <div>
+              <strong>24 / 7</strong>
+              <span>Triage Intake</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="auth-footer-notice">
+          <ShieldIcon size={15} />
+          Your information is stored securely and never used to generate unreviewed clinical decisions.
         </div>
       </div>
 
       <div className="auth-form-wrap">
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <h2>Create your account</h2>
-          <p className="subtitle">It takes less than a minute.</p>
+          <p className="subtitle">Join CareFlow AI for intelligent care coordination.</p>
 
           <div className="input-group">
             <label htmlFor="full_name">Full name</label>
@@ -81,13 +113,17 @@ export default function Register() {
               id="full_name"
               value={form.full_name}
               onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-              placeholder="Jane Doe"
+              placeholder="Dr. Jordan Hayes or Alex Smith"
             />
-            {errors.full_name && <div className="error-text" role="alert">{errors.full_name}</div>}
+            {errors.full_name && (
+              <div className="error-text" role="alert">
+                <AlertCircleIcon size={14} /> {errors.full_name}
+              </div>
+            )}
           </div>
 
           <div className="input-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">Email address</label>
             <input
               id="email"
               type="email"
@@ -95,30 +131,28 @@ export default function Register() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="you@example.com"
             />
-            {errors.email && <div className="error-text" role="alert">{errors.email}</div>}
+            {errors.email && (
+              <div className="error-text" role="alert">
+                <AlertCircleIcon size={14} /> {errors.email}
+              </div>
+            )}
           </div>
 
           <div className="input-group">
-            <label htmlFor="role">I am a</label>
+            <label htmlFor="role">Role</label>
             <select
               id="role"
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
             >
-              <option value="patient">Patient</option>
-              <option value="provider">Healthcare Provider</option>
-              {/* "Hospital Administrator" intentionally removed from public
-                  self-registration — this was a privilege-escalation bug
-                  (anyone could create their own admin account). Admin
-                  accounts must be provisioned out-of-band (seed script or
-                  by an existing admin), matching the backend, which now
-                  rejects "admin" from this endpoint outright. */}
+              <option value="patient">Patient (Seeking Care)</option>
+              <option value="provider">Healthcare Provider (Doctor / Clinician)</option>
             </select>
           </div>
 
           {form.role === 'provider' && (
             <div className="input-group">
-              <label htmlFor="specialty">Specialty</label>
+              <label htmlFor="specialty">Medical Specialty</label>
               <select
                 id="specialty"
                 value={form.specialty}
@@ -127,17 +161,21 @@ export default function Register() {
                 <option value="">Select a specialty…</option>
                 {SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-              {errors.specialty && <div className="error-text" role="alert">{errors.specialty}</div>}
+              {errors.specialty && (
+                <div className="error-text" role="alert">
+                  <AlertCircleIcon size={14} /> {errors.specialty}
+                </div>
+              )}
             </div>
           )}
 
           <div className="input-group">
-            <label htmlFor="phone">Phone (optional)</label>
+            <label htmlFor="phone">Phone number (optional)</label>
             <input
               id="phone"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="(555) 123-4567"
+              placeholder="(555) 019-2834"
             />
           </div>
 
@@ -148,13 +186,17 @@ export default function Register() {
               type="password"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="At least 8 characters, with a letter and a number"
+              placeholder="••••••••"
               aria-describedby="password-hint"
             />
-            <span id="password-hint" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              At least 8 characters, including one letter and one number.
+            <span id="password-hint" style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+              Must contain 8+ characters, with at least 1 letter and 1 number.
             </span>
-            {errors.password && <div className="error-text" role="alert">{errors.password}</div>}
+            {errors.password && (
+              <div className="error-text" role="alert">
+                <AlertCircleIcon size={14} /> {errors.password}
+              </div>
+            )}
           </div>
 
           <div className="input-group">
@@ -164,19 +206,28 @@ export default function Register() {
               type="password"
               value={form.confirm}
               onChange={(e) => setForm({ ...form, confirm: e.target.value })}
-              placeholder="Re-enter your password"
+              placeholder="••••••••"
             />
-            {errors.confirm && <div className="error-text" role="alert">{errors.confirm}</div>}
+            {errors.confirm && (
+              <div className="error-text" role="alert">
+                <AlertCircleIcon size={14} /> {errors.confirm}
+              </div>
+            )}
           </div>
 
-          {formError && <div className="error-text" role="alert">{formError}</div>}
+          {formError && (
+            <div className="error-text" role="alert" style={{ marginBottom: 14 }}>
+              <AlertCircleIcon size={15} /> {formError}
+            </div>
+          )}
 
-          <button className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
-            {loading ? 'Creating account…' : 'Create account'}
+          <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
+            {loading ? 'Creating account…' : 'Complete Registration'}
+            {!loading && <ArrowRightIcon size={16} />}
           </button>
 
           <div className="auth-switch">
-            Already have an account? <Link to="/login">Log in</Link>
+            Already have an account? <Link to="/login">Sign in</Link>
           </div>
         </form>
       </div>

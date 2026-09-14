@@ -15,7 +15,10 @@ def list_providers(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    query = db.query(models.User).filter(models.User.role == models.UserRole.provider)
+    query = db.query(models.User).filter(
+        models.User.role == models.UserRole.provider,
+        models.User.is_active == True,
+    )
     if specialty:
         query = query.filter(models.User.specialty == specialty)
     return query.all()
