@@ -51,17 +51,16 @@ def get_or_create_user(db, **kwargs):
 def run():
     db = SessionLocal()
 
-    # ── Admin account (Configured securely via environment variables) ──
-    admin_email = os.getenv("ADMIN_EMAIL")
-    admin_password = os.getenv("ADMIN_PASSWORD")
-    if admin_email and admin_password:
-        get_or_create_user(
-            db,
-            full_name=os.getenv("ADMIN_NAME", "System Administrator"),
-            email=admin_email,
-            hashed_password=auth.hash_password(admin_password),
-            role=models.UserRole.admin,
-        )
+    # ── Admin accounts ──────────────────────────────────────────────
+    admin_email = os.getenv("ADMIN_EMAIL", "khaja.admin@gmail.com")
+    admin_password = os.getenv("ADMIN_PASSWORD", "khaja1234")
+    get_or_create_user(
+        db,
+        full_name=os.getenv("ADMIN_NAME", "System Administrator"),
+        email=admin_email,
+        hashed_password=auth.hash_password(admin_password),
+        role=models.UserRole.admin,
+    )
 
     # ── Khaja personal accounts ─────────────────────────────────────
     provider_khaja = get_or_create_user(
@@ -223,6 +222,7 @@ def run():
         db.commit()
 
     print("Seed complete. Demo accounts:")
+    print("  khaja.admin@gmail.com    / khaja1234 (admin)")
     print("  khaja.provider@gmail.com / khaja1234 (provider, Cardiology)")
     print("  khaja.patient@gmail.com  / khaja1234 (patient)")
 

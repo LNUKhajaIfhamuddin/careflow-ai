@@ -71,6 +71,16 @@ const DEFAULT_USERS = [
   },
   {
     id: 7,
+    full_name: 'Khaja Administrator',
+    email: 'khaja.admin@gmail.com',
+    password: 'khaja1234',
+    role: 'admin',
+    specialty: null,
+    phone: '+1 555-0100',
+    is_active: true,
+  },
+  {
+    id: 8,
     full_name: 'System Administrator',
     email: 'admin@careflow.ai',
     password: 'Admin123!',
