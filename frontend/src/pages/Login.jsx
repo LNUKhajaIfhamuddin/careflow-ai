@@ -153,6 +153,19 @@ export default function Login() {
               <button
                 type="button"
                 className="demo-persona-card"
+                style={activePersona === 'admin' ? { borderColor: 'var(--primary)', background: 'var(--primary-subtle)' } : {}}
+                onClick={() => handleSelectDemo('admin', 'khaja.admin@gmail.com', 'khaja1234')}
+              >
+                <div className="demo-persona-meta">
+                  <span className="demo-persona-name">👑 Admin · System Administrator</span>
+                  <span className="demo-persona-email">khaja.admin@gmail.com</span>
+                </div>
+                {activePersona === 'admin' ? <CheckIcon size={16} color="var(--primary)" /> : <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Select</span>}
+              </button>
+
+              <button
+                type="button"
+                className="demo-persona-card"
                 style={activePersona === 'patient' ? { borderColor: 'var(--primary)', background: 'var(--primary-subtle)' } : {}}
                 onClick={() => handleSelectDemo('patient', 'khaja.patient@gmail.com', 'khaja1234')}
               >

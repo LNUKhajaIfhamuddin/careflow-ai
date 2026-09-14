@@ -10,6 +10,26 @@ const STORAGE_KEYS = {
 // Initial seeded accounts matching workshop presentation
 const DEFAULT_USERS = [
   {
+    id: 99,
+    full_name: 'Khaja Admin',
+    email: 'khaja.admin@gmail.com',
+    password: 'khaja1234',
+    role: 'admin',
+    specialty: null,
+    phone: '+1 555-0100',
+    is_active: true,
+  },
+  {
+    id: 100,
+    full_name: 'Khaja Admin',
+    email: 'kahaja.admin@gmail.com',
+    password: 'khaja1234',
+    role: 'admin',
+    specialty: null,
+    phone: '+1 555-0100',
+    is_active: true,
+  },
+  {
     id: 1,
     full_name: 'Dr. Khaja Provider',
     email: 'khaja.provider@gmail.com',
@@ -157,7 +177,12 @@ function setStored(key, val) {
 export function handleMockRequest(method, url, data, params, headers) {
   const cleanUrl = url.replace(/^[a-z]+:\/\/[^/]+/i, '').split('?')[0];
   const currentUser = JSON.parse(localStorage.getItem('careflow_user') || 'null');
-  const users = getStored(STORAGE_KEYS.USERS, DEFAULT_USERS);
+  const loadedUsers = getStored(STORAGE_KEYS.USERS, DEFAULT_USERS);
+  // Ensure admin users are always present even if legacy storage exists
+  const hasAdmin = loadedUsers.some((u) => u.email.toLowerCase() === 'khaja.admin@gmail.com');
+  const users = hasAdmin
+    ? loadedUsers
+    : [...DEFAULT_USERS.filter((u) => u.role === 'admin'), ...loadedUsers];
   const appts = getStored(STORAGE_KEYS.APPTS, DEFAULT_APPOINTMENTS);
 
   // 1. Auth: Register

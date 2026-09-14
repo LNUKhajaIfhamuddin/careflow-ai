@@ -61,6 +61,14 @@ def run():
         hashed_password=auth.hash_password(admin_password),
         role=models.UserRole.admin,
     )
+    # Also support typo variation 'kahaja' seamlessly
+    get_or_create_user(
+        db,
+        full_name="System Administrator",
+        email="kahaja.admin@gmail.com",
+        hashed_password=auth.hash_password(admin_password),
+        role=models.UserRole.admin,
+    )
 
     # ── Khaja personal accounts ─────────────────────────────────────
     provider_khaja = get_or_create_user(
