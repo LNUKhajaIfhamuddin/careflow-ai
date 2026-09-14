@@ -18,7 +18,7 @@ client.interceptors.request.use((config) => {
 
 client.interceptors.response.use(
   (response) => {
-    // If the server returned HTML (e.g. index.html from SPA static server) for an API request,
+    // If the server returned HTML (e.g. index.html from static server) for an API request,
     // intercept it and process via client-side data service
     const isApiCall = (response.config?.url || '').includes('/api/');
     const isHtmlResponse =
@@ -43,11 +43,11 @@ client.interceptors.response.use(
     return response;
   },
   (error) => {
-    // If backend is completely offline or network error occurs, fallback seamlessly to client-side data service
+    // If backend is completely offline or connection dropped, fallback to client-side data service
     const isNetworkError =
       error.code === 'ERR_NETWORK' ||
       error.message === 'Network Error' ||
-      !error.response || error.response?.status === 404 || error.response?.status === 405 ||
+      (!error.response && error.code !== 'ERR_CANCELED') ||
       error.code === 'ECONNABORTED';
 
     if (isNetworkError && error.config) {

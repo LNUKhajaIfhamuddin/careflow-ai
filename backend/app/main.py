@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from .database import Base, engine
 from .routers import auth, ai, users, appointments, admin
+from . import seed
 
 load_dotenv()
 
@@ -18,6 +19,12 @@ logger = logging.getLogger("careflow")
 logging.basicConfig(level=logging.INFO)
 
 Base.metadata.create_all(bind=engine)
+
+# Auto-seed initial demo accounts on startup if database is newly created
+try:
+    seed.run()
+except Exception as e:
+    logger.warning("Database auto-seed skipped or failed: %s", e)
 
 app = FastAPI(
     title="CareFlow AI API",
