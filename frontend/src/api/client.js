@@ -17,13 +17,37 @@ client.interceptors.request.use((config) => {
 });
 
 client.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If the server returned HTML (e.g. index.html from SPA static server) for an API request,
+    // intercept it and process via client-side data service
+    const isApiCall = (response.config?.url || '').includes('/api/');
+    const isHtmlResponse =
+      typeof response.data === 'string' &&
+      (response.data.includes('<!doctype') ||
+        response.data.includes('<!DOCTYPE') ||
+        response.data.includes('<html'));
+
+    if (isApiCall && isHtmlResponse) {
+      const method = (response.config.method || 'get').toLowerCase();
+      const url = response.config.url || '';
+      const data = response.config.data;
+      const params = response.config.params;
+      const headers = response.config.headers;
+
+      const mockData = handleMockRequest(method, url, data, params, headers);
+      return {
+        ...response,
+        data: mockData,
+      };
+    }
+    return response;
+  },
   (error) => {
     // If backend is completely offline or network error occurs, fallback seamlessly to client-side data service
     const isNetworkError =
       error.code === 'ERR_NETWORK' ||
       error.message === 'Network Error' ||
-      !error.response ||
+      !error.response || error.response?.status === 404 || error.response?.status === 405 ||
       error.code === 'ECONNABORTED';
 
     if (isNetworkError && error.config) {

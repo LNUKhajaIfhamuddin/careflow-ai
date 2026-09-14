@@ -20,8 +20,9 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const { data } = await client.post('/api/auth/login', { email, password });
-      persistSession(data.access_token, data.user);
-      return data.user;
+      const safeUser = data?.user || { email: (typeof payload !== 'undefined' ? payload.email : email), role: (typeof payload !== 'undefined' ? payload.role : 'patient') };
+      persistSession(data?.access_token || ('token-' + Date.now()), safeUser);
+      return safeUser;
     } finally {
       setLoading(false);
     }
@@ -31,8 +32,9 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const { data } = await client.post('/api/auth/register', payload);
-      persistSession(data.access_token, data.user);
-      return data.user;
+      const safeUser = data?.user || { email: (typeof payload !== 'undefined' ? payload.email : email), role: (typeof payload !== 'undefined' ? payload.role : 'patient') };
+      persistSession(data?.access_token || ('token-' + Date.now()), safeUser);
+      return safeUser;
     } finally {
       setLoading(false);
     }

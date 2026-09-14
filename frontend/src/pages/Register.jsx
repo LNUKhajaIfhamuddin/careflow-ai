@@ -57,7 +57,8 @@ export default function Register() {
         specialty: form.role === 'provider' ? form.specialty : null,
         phone: form.phone || null,
       });
-      navigate(`/${user.role}`);
+      const targetRole = user?.role || form.role || 'patient';
+      navigate('/' + targetRole);
     } catch (err) {
       setFormError(formatError(err, 'Unable to create account. Please try again.'));
     }
