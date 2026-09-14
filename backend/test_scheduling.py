@@ -519,3 +519,230 @@ def test_case_14_notifications_flow_and_mark_read(patient_token):
     print("  [OK] Notifications list and mark-all-read endpoint verified")
 
 
+def test_case_15_patient_and_doctor_registration_and_booking_flow():
+    """Verify end-to-end account creation for patient and doctor, provider discovery, and appointment booking."""
+    # 1. Register a new patient
+    pat_reg = client.post("/api/auth/register", json={
+        "full_name": "New Registered Patient",
+        "email": "new.patient.test@example.com",
+        "password": "Password123!",
+        "role": "patient",
+        "phone": "(555) 987-6543",
+    })
+    assert pat_reg.status_code == 201, f"Patient registration failed: {pat_reg.text}"
+    pat_data = pat_reg.json()
+    assert pat_data["user"]["role"] == "patient"
+    new_pat_token = pat_data["access_token"]
+
+    # 2. Doctor registration without specialty fails validation
+    doc_fail = client.post("/api/auth/register", json={
+        "full_name": "Dr. Gregory House",
+        "email": "house.test@hospital.com",
+        "password": "Password123!",
+        "role": "provider",
+    })
+    assert doc_fail.status_code == 422, "Doctor registration without specialty should be rejected"
+
+    # 3. Doctor registration with specialty succeeds
+    doc_reg = client.post("/api/auth/register", json={
+        "full_name": "Dr. Gregory House",
+        "email": "house.test@hospital.com",
+        "password": "Password123!",
+        "role": "provider",
+        "specialty": "Dermatology",
+        "phone": "(555) 123-4567",
+    })
+    assert doc_reg.status_code == 201, f"Doctor registration failed: {doc_reg.text}"
+    doc_data = doc_reg.json()
+    assert doc_data["user"]["role"] == "provider"
+    assert doc_data["user"]["specialty"] == "Dermatology"
+    new_doc_id = doc_data["user"]["id"]
+    new_doc_token = doc_data["access_token"]
+
+    # 4. Patient queries providers and finds Dr. Gregory House in Dermatology
+    pat_headers = {"Authorization": f"Bearer {new_pat_token}"}
+    prov_resp = client.get("/api/users/providers?specialty=Dermatology", headers=pat_headers)
+    assert prov_resp.status_code == 200
+    providers = prov_resp.json()
+    house = next((p for p in providers if p["id"] == new_doc_id), None)
+    assert house is not None, "Newly registered doctor was not found in providers list"
+    assert house["full_name"] == "Dr. Gregory House"
+
+    # 5. Patient checks available slots for Dr. Gregory House
+    future_date = (dt.date.today() + dt.timedelta(days=4)).isoformat()
+    test_slot = f"{future_date}T10:30:00"
+    slots_resp = client.get(
+        f"/api/appointments/available-slots?date={future_date}&provider_id={new_doc_id}&specialty=Dermatology",
+        headers=pat_headers,
+    )
+    assert slots_resp.status_code == 200
+    open_slots = slots_resp.json()["open_slots"]
+    assert any(s["iso"] == test_slot for s in open_slots), "Slot 10:30 should be available for new doctor"
+
+    # 6. Patient books an appointment specifically choosing Dr. Gregory House
+    book_resp = client.post("/api/appointments", json={
+        "reason": "Rash and skin consultation",
+        "specialty": "Dermatology",
+        "urgency": "medium",
+        "ai_summary": "Recommended Dermatology triage evaluation",
+        "scheduled_time": test_slot,
+        "provider_id": new_doc_id,
+    }, headers=pat_headers)
+    assert book_resp.status_code == 201, f"Booking appointment failed: {book_resp.text}"
+    appt = book_resp.json()
+    assert appt["provider_id"] == new_doc_id
+    assert appt["patient_name"] == "New Registered Patient"
+    assert appt["status"] == "pending"
+    appt_id = appt["id"]
+
+    # 7. Another patient attempting to book Dr. Gregory House at the exact same slot gets 409 Conflict
+    other_pat_reg = client.post("/api/auth/register", json={
+        "full_name": "Another Patient",
+        "email": "another.patient@test.com",
+        "password": "Password123!",
+        "role": "patient",
+    })
+    other_pat_token = other_pat_reg.json()["access_token"]
+    double_book = client.post("/api/appointments", json={
+        "reason": "Skin issue",
+        "specialty": "Dermatology",
+        "scheduled_time": test_slot,
+        "provider_id": new_doc_id,
+    }, headers={"Authorization": f"Bearer {other_pat_token}"})
+    assert double_book.status_code == 409, "Double booking same doctor should return 409 Conflict"
+
+    # 8. Dr. Gregory House logs in and sees the appointment on their schedule
+    doc_headers = {"Authorization": f"Bearer {new_doc_token}"}
+    doc_appts_resp = client.get("/api/appointments", headers=doc_headers)
+    assert doc_appts_resp.status_code == 200
+    doc_appts = doc_appts_resp.json()
+    my_appt = next((a for a in doc_appts if a["id"] == appt_id), None)
+    assert my_appt is not None, "Appointment did not appear in doctor's appointments"
+    assert my_appt["patient_name"] == "New Registered Patient"
+
+    # 9. Doctor confirms the appointment
+    confirm_resp = client.patch(f"/api/appointments/{appt_id}", json={"status": "confirmed"}, headers=doc_headers)
+    assert confirm_resp.status_code == 200
+    assert confirm_resp.json()["status"] == "confirmed"
+
+    # 10. Doctor completes the appointment
+    complete_resp = client.patch(f"/api/appointments/{appt_id}", json={"status": "completed"}, headers=doc_headers)
+    assert complete_resp.status_code == 200
+    assert complete_resp.json()["status"] == "completed"
+
+    # 11. Patient verifies appointment is completed
+    pat_appts_resp = client.get("/api/appointments", headers=pat_headers)
+    assert pat_appts_resp.status_code == 200
+    patient_view = next((a for a in pat_appts_resp.json() if a["id"] == appt_id), None)
+    assert patient_view is not None
+    assert patient_view["status"] == "completed"
+    print("  [OK] Full patient & doctor registration, appointment booking, and status workflow verified!")
+
+
+def test_case_16_role_isolation_security_and_admin_workflow(admin_token, patient_token, provider_token):
+    """Verify role boundaries, privilege-escalation prevention, admin controls, and user lifecycle."""
+    # 1. Public registration rejects 'admin' role (Privilege Escalation Protection)
+    admin_reg = client.post("/api/auth/register", json={
+        "full_name": "Hacker Admin",
+        "email": "hacker@test.com",
+        "password": "Password123!",
+        "role": "admin",
+    })
+    assert admin_reg.status_code == 422, "Registering as admin via public API must be rejected"
+
+    # 2. Admin login works and yields admin role
+    admin_login = client.post("/api/auth/login", json={
+        "email": "testadmin@hospital.com",
+        "password": "Admin123!",
+    })
+    assert admin_login.status_code == 200
+    assert admin_login.json()["user"]["role"] == "admin"
+
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+    patient_headers = {"Authorization": f"Bearer {patient_token}"}
+    provider_headers = {"Authorization": f"Bearer {provider_token}"}
+
+    # 3. Admin can retrieve system analytics
+    analytics_resp = client.get("/api/admin/analytics", headers=admin_headers)
+    assert analytics_resp.status_code == 200
+    data = analytics_resp.json()
+    assert "total_patients" in data
+    assert "total_providers" in data
+    assert "total_appointments" in data
+
+    # 4. Patient and Provider cannot access admin analytics (403 Forbidden)
+    assert client.get("/api/admin/analytics", headers=patient_headers).status_code == 403
+    assert client.get("/api/admin/analytics", headers=provider_headers).status_code == 403
+
+    # 5. Patient and Provider cannot access admin user list (403 Forbidden)
+    assert client.get("/api/admin/users", headers=patient_headers).status_code == 403
+    assert client.get("/api/admin/users", headers=provider_headers).status_code == 403
+
+    # 6. Admin can list all users
+    users_resp = client.get("/api/admin/users", headers=admin_headers)
+    assert users_resp.status_code == 200
+    all_users = users_resp.json()
+    assert len(all_users) >= 3
+
+    # 7. Role-restricted field modification:
+    # Get an active appointment
+    all_appts = client.get("/api/appointments", headers=admin_headers).json()
+    assert len(all_appts) > 0
+    target_appt = all_appts[0]
+
+    # Patient cannot modify appointment status (only provider/admin can)
+    patient_patch_status = client.patch(
+        f"/api/appointments/{target_appt['id']}",
+        json={"status": "completed"},
+        headers=patient_headers,
+    )
+    assert patient_patch_status.status_code in (400, 403), "Patient must not be allowed to set status"
+
+    # Provider cannot modify urgency (only admin can)
+    provider_patch_urgency = client.patch(
+        f"/api/appointments/{target_appt['id']}",
+        json={"urgency": "high"},
+        headers=provider_headers,
+    )
+    assert provider_patch_urgency.status_code == 403, "Provider must not be allowed to set urgency"
+
+    # 8. User deactivation and reactivation lifecycle
+    # Create a dummy patient to test deactivation
+    dummy = client.post("/api/auth/register", json={
+        "full_name": "Temporary User",
+        "email": "temp.user@test.com",
+        "password": "Password123!",
+        "role": "patient",
+    }).json()
+    dummy_id = dummy["user"]["id"]
+
+    # Deactivate the user
+    deact_resp = client.patch(f"/api/admin/users/{dummy_id}/deactivate", headers=admin_headers)
+    assert deact_resp.status_code == 200
+    assert deact_resp.json()["is_active"] is False
+
+    # Deactivated user cannot log in
+    blocked_login = client.post("/api/auth/login", json={
+        "email": "temp.user@test.com",
+        "password": "Password123!",
+    })
+    assert blocked_login.status_code == 403
+    assert "deactivated" in blocked_login.json()["detail"].lower()
+
+    # Reactivate the user
+    act_resp = client.patch(f"/api/admin/users/{dummy_id}/activate", headers=admin_headers)
+    assert act_resp.status_code == 200
+    assert act_resp.json()["is_active"] is True
+
+    # User can now log in again
+    ok_login = client.post("/api/auth/login", json={
+        "email": "temp.user@test.com",
+        "password": "Password123!",
+    })
+    assert ok_login.status_code == 200
+
+    print("  [OK] Security, role isolation, and admin lifecycle verified!")
+
+
+
+

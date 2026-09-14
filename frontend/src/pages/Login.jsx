@@ -9,6 +9,8 @@ import {
   AlertCircleIcon,
   ArrowRightIcon,
   CheckIcon,
+  EyeIcon,
+  EyeOffIcon,
 } from '../components/Icons';
 
 export default function Login() {
@@ -17,6 +19,7 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [activePersona, setActivePersona] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,17 +103,28 @@ export default function Login() {
 
           <div className="input-group">
             <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={form.password}
-              onChange={(e) => {
-                setForm({ ...form, password: e.target.value });
-                setActivePersona(null);
-              }}
-              placeholder="••••••••"
-            />
+            <div className="password-input-wrap">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={form.password}
+                onChange={(e) => {
+                  setForm({ ...form, password: e.target.value });
+                  setActivePersona(null);
+                }}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -160,19 +174,6 @@ export default function Login() {
                   <span className="demo-persona-email">khaja.provider@gmail.com</span>
                 </div>
                 {activePersona === 'provider' ? <CheckIcon size={16} color="var(--primary)" /> : <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Select</span>}
-              </button>
-
-              <button
-                type="button"
-                className="demo-persona-card"
-                style={activePersona === 'admin' ? { borderColor: 'var(--primary)', background: 'var(--primary-subtle)' } : {}}
-                onClick={() => handleSelectDemo('admin', 'khaja.admin@gmail.com', 'khaja1234')}
-              >
-                <div className="demo-persona-meta">
-                  <span className="demo-persona-name">⚙️ Hospital Admin · Khaja Admin</span>
-                  <span className="demo-persona-email">khaja.admin@gmail.com</span>
-                </div>
-                {activePersona === 'admin' ? <CheckIcon size={16} color="var(--primary)" /> : <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Select</span>}
               </button>
             </div>
           </div>

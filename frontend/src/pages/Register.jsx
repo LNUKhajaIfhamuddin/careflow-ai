@@ -8,6 +8,8 @@ import {
   AlertCircleIcon,
   ArrowRightIcon,
   SparklesIcon,
+  EyeIcon,
+  EyeOffIcon,
 } from '../components/Icons';
 
 const SPECIALTIES = [
@@ -24,6 +26,8 @@ export default function Register() {
   });
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const validate = () => {
     const errs = {};
@@ -181,14 +185,25 @@ export default function Register() {
 
           <div className="input-group">
             <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="••••••••"
-              aria-describedby="password-hint"
-            />
+            <div className="password-input-wrap">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="••••••••"
+                aria-describedby="password-hint"
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
+              </button>
+            </div>
             <span id="password-hint" style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
               Must contain 8+ characters, with at least 1 letter and 1 number.
             </span>
@@ -201,13 +216,24 @@ export default function Register() {
 
           <div className="input-group">
             <label htmlFor="confirm">Confirm password</label>
-            <input
-              id="confirm"
-              type="password"
-              value={form.confirm}
-              onChange={(e) => setForm({ ...form, confirm: e.target.value })}
-              placeholder="••••••••"
-            />
+            <div className="password-input-wrap">
+              <input
+                id="confirm"
+                type={showConfirm ? 'text' : 'password'}
+                value={form.confirm}
+                onChange={(e) => setForm({ ...form, confirm: e.target.value })}
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowConfirm(!showConfirm)}
+                title={showConfirm ? 'Hide password' : 'Show password'}
+                aria-label={showConfirm ? 'Hide password' : 'Show password'}
+              >
+                {showConfirm ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
+              </button>
+            </div>
             {errors.confirm && (
               <div className="error-text" role="alert">
                 <AlertCircleIcon size={14} /> {errors.confirm}

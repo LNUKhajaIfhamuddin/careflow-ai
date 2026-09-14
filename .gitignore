@@ -18,3 +18,8 @@ dist/
 
 # OS
 .DS_Store
+
+# Agent configs & local runner
+.agents/
+.antigravity/
+*.bat

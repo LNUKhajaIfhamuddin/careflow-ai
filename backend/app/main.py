@@ -99,6 +99,18 @@ app.include_router(appointments.router)
 app.include_router(admin.router)
 
 
+@app.get("/")
+def root():
+    return {
+        "service": "CareFlow AI Clinical API",
+        "status": "online",
+        "version": "1.0.0",
+        "docs": "http://127.0.0.1:8000/docs",
+        "frontend": "http://127.0.0.1:5173",
+        "description": "Backend is running smoothly! Visit /docs for API documentation or open the frontend URL to use the application.",
+    }
+
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ok", "service": "CareFlow AI API"}

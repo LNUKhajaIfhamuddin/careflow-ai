@@ -2,6 +2,7 @@ import datetime as dt
 from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, auth
@@ -42,11 +43,12 @@ _ACTIVE_STATUSES = [
 
 def _provider_ids_for_specialty(db: Session, specialty: str) -> List[int]:
     """Return IDs of every active provider in *specialty*."""
+    spec = (specialty or "").strip().lower()
     return [
         uid
         for (uid,) in db.query(models.User.id).filter(
             models.User.role == models.UserRole.provider,
-            models.User.specialty == specialty,
+            func.lower(func.trim(models.User.specialty)) == spec,
             models.User.is_active == True,
         ).all()
     ]
@@ -435,8 +437,8 @@ def get_available_slots(
             if not candidate_provider_ids:
                 is_blocked = True
             elif provider_id is not None:
-                # When checking a specific doctor, block only if THAT doctor is already booked at this slot
-                is_blocked = provider_id in booked_pids
+                # When checking a specific doctor, block if THAT doctor or current patient is already booked
+                is_blocked = (provider_id in booked_pids) or is_patient_booked
             else:
                 total_booked = len(booked_pids) + unassigned_count
                 is_blocked = (
