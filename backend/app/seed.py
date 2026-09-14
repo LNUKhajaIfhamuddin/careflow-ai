@@ -3,8 +3,7 @@ Run with: python -m app.seed
 Creates demo accounts so you can log in immediately without registering:
 
   Admin accounts:
-    khaja.admin@gmail.com  / khaja1234   (admin)
-    admin@careflow.ai      / Admin123!   (admin)
+    Configured securely via ADMIN_EMAIL and ADMIN_PASSWORD environment variables.
 
   Provider accounts (password: Provider123!):
     chen.ortho@hospital.com     – Dr. Robert Chen       (Orthopedics)
@@ -24,6 +23,7 @@ Creates demo accounts so you can log in immediately without registering:
     khaja.patient@gmail.com / khaja1234  (patient)
     jane.doe@example.com    / Patient123! (patient)
 """
+import os
 import datetime as dt
 
 from .database import SessionLocal, Base, engine
@@ -51,22 +51,17 @@ def get_or_create_user(db, **kwargs):
 def run():
     db = SessionLocal()
 
-    # ── Admin accounts ──────────────────────────────────────────────
-    admin_khaja = get_or_create_user(
-        db,
-        full_name="Khaja Admin",
-        email="khaja.admin@gmail.com",
-        hashed_password=auth.hash_password("khaja1234"),
-        role=models.UserRole.admin,
-    )
-
-    admin = get_or_create_user(
-        db,
-        full_name="System Administrator",
-        email="admin@careflow.ai",
-        hashed_password=auth.hash_password("Admin123!"),
-        role=models.UserRole.admin,
-    )
+    # ── Admin account (Configured securely via environment variables) ──
+    admin_email = os.getenv("ADMIN_EMAIL")
+    admin_password = os.getenv("ADMIN_PASSWORD")
+    if admin_email and admin_password:
+        get_or_create_user(
+            db,
+            full_name=os.getenv("ADMIN_NAME", "System Administrator"),
+            email=admin_email,
+            hashed_password=auth.hash_password(admin_password),
+            role=models.UserRole.admin,
+        )
 
     # ── Khaja personal accounts ─────────────────────────────────────
     provider_khaja = get_or_create_user(
@@ -228,7 +223,6 @@ def run():
         db.commit()
 
     print("Seed complete. Demo accounts:")
-    print("  khaja.admin@gmail.com    / khaja1234 (admin)")
     print("  khaja.provider@gmail.com / khaja1234 (provider, Cardiology)")
     print("  khaja.patient@gmail.com  / khaja1234 (patient)")
 

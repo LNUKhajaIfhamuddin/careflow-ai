@@ -161,7 +161,7 @@ After running the seed script:
 |----------|--------------------------|----------------|
 | Patient  | khaja.patient@gmail.com  | khaja1234      |
 | Provider | khaja.provider@gmail.com | khaja1234      |
-| Admin    | khaja.admin@gmail.com    | khaja1234      |
+| Admin    | Set in .env (`ADMIN_EMAIL`) | Set in .env (`ADMIN_PASSWORD`) |
 
 ## Environment variables
 
@@ -174,6 +174,9 @@ After running the seed script:
 | `ACCESS_TOKEN_EXPIRE_MINUTES`| Token lifetime in minutes (default 1440 = 24h)             |
 | `OPENAI_API_KEY`             | Optional. Leave blank to use the built-in mock AI analyzer |
 | `FRONTEND_ORIGIN`            | Allowed CORS origin for the frontend                       |
+| `ADMIN_EMAIL`                | Optional admin email for initial account creation         |
+| `ADMIN_PASSWORD`             | Optional admin password for initial account creation      |
+| `ADMIN_NAME`                 | Optional admin full name (default: System Administrator)  |
 
 **frontend/.env**
 

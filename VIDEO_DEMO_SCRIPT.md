@@ -41,7 +41,7 @@ order. Keep the app running locally (`uvicorn` + `npm run dev`) before you start
 - Click "Confirm" on a pending appointment, then "Mark completed"
 
 **6. Admin dashboard (30 sec)**
-- Log out, log in as `admin@careflow.ai` / `Admin123!`
+- Log out, log in with administrator credentials
 - Show the analytics charts (specialty bar chart, urgency pie chart)
 - Switch to Users & Appointments tab, show the full lists
 - Deactivate a test user
