@@ -3,9 +3,10 @@ runtime: python311
 build:
   commands:
     build:
-      - python3 -m pip install -r backend/requirements.txt
-      - python3 -m backend.app.seed
+      - python3 -m venv /app/venv
+      - /app/venv/bin/pip install -r backend/requirements.txt
+      - /app/venv/bin/python -m backend.app.seed
 run:
-  command: python3 -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+  command: /app/venv/bin/python3 -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
   network:
     port: 8000
