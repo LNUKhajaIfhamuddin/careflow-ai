@@ -3,24 +3,41 @@ import client from '../api/client';
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
+function getInitialUser() {
+  try {
     const stored = localStorage.getItem('careflow_user');
-    return stored ? JSON.parse(stored) : null;
-  });
+    if (!stored || stored === 'undefined' || stored === 'null') {
+      localStorage.removeItem('careflow_user');
+      return null;
+    }
+    const parsed = JSON.parse(stored);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    localStorage.removeItem('careflow_user');
+    localStorage.removeItem('careflow_token');
+    return null;
+  }
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(getInitialUser);
   const [loading, setLoading] = useState(false);
 
   const persistSession = (token, userData) => {
-    localStorage.setItem('careflow_token', token);
-    localStorage.setItem('careflow_user', JSON.stringify(userData));
-    setUser(userData);
+    if (token) {
+      localStorage.setItem('careflow_token', token);
+    }
+    if (userData) {
+      localStorage.setItem('careflow_user', JSON.stringify(userData));
+      setUser(userData);
+    }
   };
 
   const login = useCallback(async (email, password) => {
     setLoading(true);
     try {
       const { data } = await client.post('/api/auth/login', { email, password });
-      const safeUser = data?.user || { email: (typeof payload !== 'undefined' ? payload.email : email), role: (typeof payload !== 'undefined' ? payload.role : 'patient') };
+      const safeUser = data?.user || { email, role: 'admin' };
       persistSession(data?.access_token || ('token-' + Date.now()), safeUser);
       return safeUser;
     } finally {
@@ -32,7 +49,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const { data } = await client.post('/api/auth/register', payload);
-      const safeUser = data?.user || { email: (typeof payload !== 'undefined' ? payload.email : email), role: (typeof payload !== 'undefined' ? payload.role : 'patient') };
+      const safeUser = data?.user || { email: payload?.email, role: payload?.role || 'patient' };
       persistSession(data?.access_token || ('token-' + Date.now()), safeUser);
       return safeUser;
     } finally {
