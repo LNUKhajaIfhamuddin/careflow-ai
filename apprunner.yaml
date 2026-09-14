@@ -3,10 +3,12 @@ runtime: python311
 build:
   commands:
     build:
-      - python3 -m venv /app/venv
-      - /app/venv/bin/pip install -r backend/requirements.txt
-      - /app/venv/bin/python -m backend.app.seed
+      - echo "Build phase complete"
 run:
-  command: /app/venv/bin/python3 -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+  runtime-version: 3.11
+  pre-run:
+    - pip3 install -r backend/requirements.txt
+    - python3 -m backend.app.seed
+  command: python3 -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
   network:
     port: 8000
