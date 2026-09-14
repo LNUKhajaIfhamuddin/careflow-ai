@@ -414,9 +414,10 @@ export default function SymptomIntake() {
                     <option value="">Any available doctor (recommended auto-assign)</option>
                     {providers.map((p) => {
                       const cleanName = p.full_name?.replace(/^Dr\.\s*/i, '') || 'Doctor';
+                      const isKhaja = p.email === 'khaja.provider@gmail.com';
                       return (
                         <option key={p.id} value={p.id}>
-                          Dr. {cleanName} ({p.specialty || 'General Practice'})
+                          {isKhaja ? `⭐ Dr. ${cleanName} (${p.specialty || 'Cardiology'}) — ${p.email}` : `Dr. ${cleanName} (${p.specialty || 'General Practice'}) — ${p.email}`}
                         </option>
                       );
                     })}

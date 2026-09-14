@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, auth
@@ -20,5 +21,14 @@ def list_providers(
         models.User.is_active == True,
     )
     if specialty:
-        query = query.filter(models.User.specialty == specialty)
-    return query.all()
+        # Include specialists matching this department plus Dr. Khaja (attending physician)
+        query = query.filter(
+            or_(
+                models.User.specialty == specialty,
+                models.User.email == "khaja.provider@gmail.com",
+            )
+        )
+    providers = query.all()
+    # Sort so Dr. Khaja Provider is prominently first
+    providers.sort(key=lambda u: (0 if u.email == "khaja.provider@gmail.com" else 1, u.full_name))
+    return providers

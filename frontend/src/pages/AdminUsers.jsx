@@ -517,7 +517,10 @@ export default function AdminUsers() {
               </label>
               {(() => {
                 const matchingProviders = activeProviders.filter(
-                  (p) => !assignAppt.specialty || p.specialty?.trim().toLowerCase() === assignAppt.specialty?.trim().toLowerCase()
+                  (p) =>
+                    !assignAppt.specialty ||
+                    p.specialty?.trim().toLowerCase() === assignAppt.specialty?.trim().toLowerCase() ||
+                    p.email === 'khaja.provider@gmail.com'
                 );
                 return (
                   <>
@@ -530,7 +533,7 @@ export default function AdminUsers() {
                       <option value="">-- Choose a Clinician --</option>
                       {matchingProviders.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.full_name} ({p.specialty || 'General Practice'})
+                          {p.full_name} ({p.specialty || 'General Practice'}) — {p.email}
                         </option>
                       ))}
                     </select>
