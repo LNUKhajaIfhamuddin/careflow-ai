@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "start": "npx serve -s frontend/dist -l 8080",
+    "start": "npx serve -s build -l 3000",
     "dev": "cd frontend && npm run dev"
   },
   "dependencies": {

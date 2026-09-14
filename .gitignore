@@ -10,6 +10,9 @@ backend/careflow.db*
 # Node
 node_modules/
 dist/
+build/
+frontend/dist/
+frontend/build/
 .vite/
 
 # Env
