@@ -4,7 +4,8 @@ import os
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from dotenv import load_dotenv
 
@@ -38,9 +39,10 @@ FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[FRONTEND_ORIGIN, "http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -57,17 +59,11 @@ async def add_security_headers(request: Request, call_next):
 # --- Global exception handling: never leak stack traces to clients ---
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    # Preserve intended status codes/messages (404, 401, 403, 429, etc.)
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    # Return Pydantic's field-level errors (still safe, no internals) instead
-    # of a raw traceback. Pydantic v2 error dicts can include a "ctx" entry
-    # holding the original exception object (e.g. from a custom
-    # field_validator that raises ValueError) — that's not JSON-serializable,
-    # so only the safe, descriptive fields are forwarded here.
     safe_errors = [
         {"loc": e.get("loc"), "msg": e.get("msg"), "type": e.get("type")}
         for e in exc.errors()
@@ -80,11 +76,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    # Fix: previously an unexpected error (e.g. a DB outage) would bubble up
-    # as a raw Python traceback in the response body — an information
-    # disclosure risk (reveals file paths, library versions, code structure).
-    # Now it's logged server-side with full detail, and the client only ever
-    # sees a generic message.
     logger.exception("Unhandled exception while processing %s %s", request.method, request.url)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -92,6 +83,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
+# --- Register API Routers ---
 app.include_router(auth.router)
 app.include_router(ai.router)
 app.include_router(users.router)
@@ -99,18 +91,37 @@ app.include_router(appointments.router)
 app.include_router(admin.router)
 
 
-@app.get("/")
-def root():
-    return {
-        "service": "CareFlow AI Clinical API",
-        "status": "online",
-        "version": "1.0.0",
-        "docs": "http://127.0.0.1:8000/docs",
-        "frontend": "http://127.0.0.1:5173",
-        "description": "Backend is running smoothly! Visit /docs for API documentation or open the frontend URL to use the application.",
-    }
-
-
 @app.get("/api/health")
 def health_check():
     return {"status": "ok", "service": "CareFlow AI API"}
+
+
+# --- Serve React SPA Static Files ---
+BUILD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "build"))
+
+if os.path.exists(os.path.join(BUILD_DIR, "assets")):
+    app.mount("/assets", StaticFiles(directory=os.path.join(BUILD_DIR, "assets")), name="assets")
+
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    # Do not capture /api calls that didn't match a router
+    if full_path.startswith("api/") or full_path == "api":
+        return JSONResponse(status_code=404, content={"detail": "API endpoint not found"})
+
+    file_path = os.path.join(BUILD_DIR, full_path)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+
+    index_path = os.path.join(BUILD_DIR, "index.html")
+    if os.path.isfile(index_path):
+        return FileResponse(index_path)
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "service": "CareFlow AI Clinical API",
+            "status": "online",
+            "version": "1.0.0",
+        },
+    )
