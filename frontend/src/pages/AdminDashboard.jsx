@@ -14,24 +14,33 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     client.get('/api/admin/analytics')
-      .then((res) => setData(res.data))
-      .catch(() => setError('Could not load analytics.'))
+      .then((res) => {
+        if (res.data && typeof res.data === 'object') {
+          setData(res.data);
+        } else {
+          setError('Could not load analytics data.');
+        }
+      })
+      .catch((err) => setError(err?.response?.data?.detail || 'Could not load analytics.'))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <AppShell><Loader label="Loading operational analytics…" /></AppShell>;
-  if (error) {
+  if (error || !data) {
     return (
       <AppShell>
         <div className="error-text" role="alert">
-          <AlertCircleIcon size={16} /> {error}
+          <AlertCircleIcon size={16} /> {error || 'Could not load analytics. Please check your administrator privileges.'}
         </div>
       </AppShell>
     );
   }
 
-  const specialtyData = Object.entries(data.appointments_by_specialty).map(([name, value]) => ({ name, value }));
-  const urgencyData = Object.entries(data.appointments_by_urgency).map(([name, value]) => ({ name, value }));
+  const rawSpecialty = data.appointments_by_specialty || {};
+  const specialtyData = Object.entries(rawSpecialty).map(([name, value]) => ({ name, value }));
+
+  const rawUrgency = data.appointments_by_urgency || data.urgency_breakdown || {};
+  const urgencyData = Object.entries(rawUrgency).map(([name, value]) => ({ name, value }));
 
   return (
     <AppShell>
@@ -43,13 +52,13 @@ export default function AdminDashboard() {
       </div>
 
       <div className="stat-grid">
-        <StatCard label="Total Patients" value={data.total_patients} subtext="Active individuals" />
-        <StatCard label="Total Providers" value={data.total_providers} subtext="Active clinicians" />
-        <StatCard label="Total Appointments" value={data.total_appointments} subtext="All time bookings" />
-        <StatCard label="Pending Intake" value={data.pending_appointments} subtext="Awaiting review" />
+        <StatCard label="Total Patients" value={data.total_patients || data.active_patients || 0} subtext="Active individuals" />
+        <StatCard label="Total Providers" value={data.total_providers || data.active_providers || 0} subtext="Active clinicians" />
+        <StatCard label="Total Appointments" value={data.total_appointments || 0} subtext="All time bookings" />
+        <StatCard label="Pending Intake" value={data.pending_appointments || 0} subtext="Awaiting review" />
         <StatCard label="Confirmed Visits" value={data.confirmed_appointments || 0} subtext="Scheduled consultations" />
-        <StatCard label="Completed Visits" value={data.completed_appointments} subtext="Successfully concluded" />
-        <StatCard label="Cancelled" value={data.cancelled_appointments} subtext="Patient/desk cancelled" />
+        <StatCard label="Completed Visits" value={data.completed_appointments || 0} subtext="Successfully concluded" />
+        <StatCard label="Cancelled" value={data.cancelled_appointments || 0} subtext="Patient/desk cancelled" />
       </div>
 
       <div className="two-col">

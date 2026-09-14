@@ -380,12 +380,21 @@ export function handleMockRequest(method, url, data, params, headers) {
   }
 
   if (method === 'get' && cleanUrl === '/api/admin/analytics') {
+    const specCounts = {};
+    appts.forEach((a) => {
+      const spec = a.specialty || 'General Practice';
+      specCounts[spec] = (specCounts[spec] || 0) + 1;
+    });
     return {
+      total_patients: users.filter((u) => u.role === 'patient').length,
+      total_providers: users.filter((u) => u.role === 'provider').length,
       total_appointments: appts.length,
+      pending_appointments: appts.filter((a) => a.status === 'pending').length,
       confirmed_appointments: appts.filter((a) => a.status === 'confirmed').length,
-      active_providers: users.filter((u) => u.role === 'provider').length,
-      active_patients: users.filter((u) => u.role === 'patient').length,
-      urgency_breakdown: {
+      completed_appointments: appts.filter((a) => a.status === 'completed').length,
+      cancelled_appointments: appts.filter((a) => a.status === 'cancelled').length,
+      appointments_by_specialty: specCounts,
+      appointments_by_urgency: {
         high: appts.filter((a) => a.urgency === 'high').length,
         medium: appts.filter((a) => a.urgency === 'medium').length,
         low: appts.filter((a) => a.urgency === 'low').length,
