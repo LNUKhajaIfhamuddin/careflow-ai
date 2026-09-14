@@ -1,11 +1,11 @@
 version: 1.0
-runtime: python311
+runtime: nodejs22
 build:
   commands:
     build:
-      - pip install -r backend/requirements.txt
-      - python -m backend.app.seed
+      - npm install
+      - npm run build
 run:
-  command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+  command: npx serve -s build -l 3000
   network:
-    port: 8000
+    port: 3000
