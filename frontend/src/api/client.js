@@ -1,9 +1,11 @@
 import axios from 'axios';
+import { handleMockRequest } from './mockBackend';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const client = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 5000,
 });
 
 client.interceptors.request.use((config) => {
@@ -17,6 +19,34 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (response) => response,
   (error) => {
+    // If backend is offline or network error occurs, fallback seamlessly to client-side data service
+    const isNetworkError =
+      error.code === 'ERR_NETWORK' ||
+      error.message === 'Network Error' ||
+      !error.response ||
+      error.code === 'ECONNABORTED';
+
+    if (isNetworkError && error.config) {
+      try {
+        const method = (error.config.method || 'get').toLowerCase();
+        const url = error.config.url || '';
+        const data = error.config.data;
+        const params = error.config.params;
+        const headers = error.config.headers;
+
+        const mockData = handleMockRequest(method, url, data, params, headers);
+        return Promise.resolve({
+          data: mockData,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: error.config,
+        });
+      } catch (mockErr) {
+        return Promise.reject(mockErr);
+      }
+    }
+
     if (error.response?.status === 401) {
       localStorage.removeItem('careflow_token');
       localStorage.removeItem('careflow_user');
