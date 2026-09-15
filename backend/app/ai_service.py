@@ -30,9 +30,11 @@ SPECIALTIES = [
 
 # Keyword -> specialty mapping used by the mock analyzer.
 KEYWORD_MAP = {
-    "chest pain": "Cardiology",
+    "chest": "Cardiology",
+    "tightness": "Cardiology",
     "heart": "Cardiology",
     "palpitation": "Cardiology",
+    "cardio": "Cardiology",
     "skin": "Dermatology",
     "rash": "Dermatology",
     "acne": "Dermatology",
