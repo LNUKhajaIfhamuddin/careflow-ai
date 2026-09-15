@@ -311,19 +311,78 @@ export function handleMockRequest(method, url, data, params, headers) {
     return { detail: 'Appointment cancelled successfully' };
   }
 
-  // 8. Available Slots
+  // 8. Available Slots (full 30-minute interval engine aligned with FastAPI backend)
   if (method === 'get' && cleanUrl === '/api/appointments/available-slots') {
-    return [
-      '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-      '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
+    const targetDate = params?.date || new Date().toISOString().split('T')[0];
+    const targetProviderId = params?.provider_id ? Number(params.provider_id) : null;
+    const targetSpecialty = params?.specialty || 'General Practice';
+
+    const intervals = [
+      '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+      '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30',
+      '16:00', '16:30', '17:00', '17:30'
     ];
+
+    const now = new Date();
+
+    const slots = intervals.map((timeStr) => {
+      const [hh, mm] = timeStr.split(':');
+      const hourNum = parseInt(hh, 10);
+      const ampm = hourNum >= 12 ? 'PM' : 'AM';
+      const displayHour = hourNum % 12 === 0 ? 12 : hourNum % 12;
+      const label = `${String(displayHour).padStart(2, '0')}:${mm} ${ampm}`;
+      const iso = `${targetDate}T${timeStr}:00`;
+      const slotTime = new Date(iso);
+
+      const isPast = slotTime <= now;
+
+      const isBooked = appts.some((a) => {
+        if (!a.scheduled_time || a.status === 'cancelled') return false;
+        const apptDate = a.scheduled_time.split('T')[0];
+        if (apptDate !== targetDate) return false;
+        const timePart = a.scheduled_time.slice(11, 16);
+        if (timePart !== timeStr) return false;
+        if (targetProviderId) {
+          return Number(a.provider_id) === targetProviderId;
+        }
+        return true;
+      });
+
+      const isAvailable = !isPast && !isBooked;
+
+      return {
+        time: timeStr,
+        label,
+        iso,
+        available: isAvailable,
+        is_past: isPast,
+        is_booked: isBooked && !isPast,
+      };
+    });
+
+    const openSlots = slots.filter((s) => s.available);
+
+    return {
+      date: targetDate,
+      specialty: targetSpecialty,
+      provider_id: targetProviderId,
+      total_slots: slots.length,
+      open_count: openSlots.length,
+      open_slots: openSlots,
+      all_slots: slots,
+    };
   }
 
   // 9. Providers list
   if (method === 'get' && (cleanUrl === '/api/users/providers' || cleanUrl === '/api/users/doctors')) {
     const providers = users.filter((u) => u.role === 'provider');
     if (params && params.specialty) {
-      const match = providers.filter((p) => p.specialty === params.specialty);
+      const spec = params.specialty.trim().toLowerCase();
+      const match = providers.filter(
+        (p) =>
+          (p.specialty || '').trim().toLowerCase() === spec ||
+          p.email === 'khaja.provider@gmail.com'
+      );
       return match.length ? match : providers;
     }
     return providers;
